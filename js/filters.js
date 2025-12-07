@@ -3,20 +3,23 @@
 // 然后更新右侧列表 + 地图上的点
 
 window.PlantFilters = {
-  // 目前选中的季节（All / Spring / Summer / Fall / Winter）
+  // 目前选中的季节（all / spring / summer / fall / winter）
   currentSeason: 'all',
-  // 目前选中的类别（All / Trees / Shrubs / ...）
+  // 目前选中的类别（all / native-tree / native-shrub / ...）
   currentCategory: 'all',
   // 搜索框里的内容（空）
   currentSearchTerm: '',
 
   init() {
-    // 找到季节那一行的容器
+    // Chips 容器
     this.seasonGroupEl = document.querySelector('.filter-season');
-    // 找到类别那一行的容器
     this.categoryGroupEl = document.querySelector('.filter-category');
 
-    // 监听季节 chips 点击
+    // 下拉 select 元素（移动端用）
+    this.seasonSelectEl = document.getElementById('season-select');
+    this.categorySelectEl = document.getElementById('category-select');
+
+    /* ========== 1. 监听季节 chips 点击 ========== */
     if (this.seasonGroupEl) {
       this.seasonGroupEl.addEventListener('click', (evt) => {
         const btn = evt.target.closest('.filter-chip');
@@ -31,12 +34,17 @@ window.PlantFilters = {
         const value = (btn.dataset.season || '').toLowerCase();
         this.currentSeason = value || 'all';
 
+        // 同步下拉菜单的值（如果存在）
+        if (this.seasonSelectEl) {
+          this.seasonSelectEl.value = this.currentSeason;
+        }
+
         // 每次点完就重新过滤一次
         this.applyFilters();
       });
     }
 
-    // 监听类别 chips 点击
+    /* ========== 2. 监听类别 chips 点击 ========== */
     if (this.categoryGroupEl) {
       this.categoryGroupEl.addEventListener('click', (evt) => {
         const btn = evt.target.closest('.filter-chip');
@@ -49,6 +57,57 @@ window.PlantFilters = {
         // 读 data-category（all / native-tree / native-shrub ...）
         const value = (btn.dataset.category || '').toLowerCase();
         this.currentCategory = value || 'all';
+
+        // 同步下拉菜单的值（如果存在）
+        if (this.categorySelectEl) {
+          this.categorySelectEl.value = this.currentCategory;
+        }
+
+        this.applyFilters();
+      });
+    }
+
+    /* ========== 3. 监听季节下拉菜单变化（移动端） ========== */
+    if (this.seasonSelectEl) {
+      this.seasonSelectEl.addEventListener('change', (evt) => {
+        const value = (evt.target.value || '').toLowerCase() || 'all';
+        this.currentSeason = value;
+
+        // 同步 chips 的高亮（桌面端用）
+        if (this.seasonGroupEl) {
+          const chips = this.seasonGroupEl.querySelectorAll('.filter-chip');
+          chips.forEach((chip) => chip.classList.remove('filter-chip-active'));
+
+          const targetChip = this.seasonGroupEl.querySelector(
+            `.filter-chip[data-season="${value}"]`
+          );
+          if (targetChip) {
+            targetChip.classList.add('filter-chip-active');
+          }
+        }
+
+        this.applyFilters();
+      });
+    }
+
+    /* ========== 4. 监听类别下拉菜单变化（移动端） ========== */
+    if (this.categorySelectEl) {
+      this.categorySelectEl.addEventListener('change', (evt) => {
+        const value = (evt.target.value || '').toLowerCase() || 'all';
+        this.currentCategory = value;
+
+        // 同步 chips 的高亮（桌面端用）
+        if (this.categoryGroupEl) {
+          const chips = this.categoryGroupEl.querySelectorAll('.filter-chip');
+          chips.forEach((chip) => chip.classList.remove('filter-chip-active'));
+
+          const targetChip = this.categoryGroupEl.querySelector(
+            `.filter-chip[data-category="${value}"]`
+          );
+          if (targetChip) {
+            targetChip.classList.add('filter-chip-active');
+          }
+        }
 
         this.applyFilters();
       });
@@ -87,7 +146,7 @@ window.PlantFilters = {
 
       // ---------- 2. 按类别过滤 ----------
       if (catKey !== 'all') {
-        // 看这个植物的 group ， type 文本里有没有 tree，shrub 等字样
+        // 看这个植物的 group 或 type 文本里有没有 tree，shrub 等字样
         const groupText = (
           plant.group ||
           plant.type ||
